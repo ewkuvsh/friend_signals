@@ -18,11 +18,12 @@ intents.message_content = True
 client: Client = Client(intents=intents)
 
 client_list = []  # client list is global var now
+goon_users = set()
 
 
 def trigger_buzzer(name):
     for friend in client_list:
-        if friend.name == name:
+        if friend.name in name:
             friend.send_message("trigger alarm")
 
 
@@ -36,12 +37,13 @@ def trigger_buzzers_for_all_devices():
 
 @client.event
 async def on_message(message: Message) -> None:
-    global client_list
+    global client_list, goon_users
 
     if message.author == client.user:
         return
 
-    if message.content.startswith("!goon"):
+    # checks if the message is "!goon" or "!goon [name]" with number of words in the message
+    if message.content.startswith("!goon") and len(message.content.split()) == 1:
         if message.author.id not in goon_users:
             goon_users.add(message.author.id)
             await message.channel.send(
@@ -50,8 +52,16 @@ async def on_message(message: Message) -> None:
 
             if len(goon_users) == 2:
                 await message.channel.send("It's gooning time!")
-                trigger_buzzers_for_all_devices(goon_users)
+                trigger_buzzers_for_all_devices()
                 goon_users.clear()
+
+    else:
+        trigger_buzzer(
+            message.content.split(" ", 1)[1]
+        )  # grabs name from the message string (probably)
+
+
+# i added single person activations, this is untested because i dont have discord api stuff set up.
 
 
 def start_server(ip, port):
@@ -79,32 +89,24 @@ def handshake(client_socket):
 
 async def manage_clients(server_sock, client_list):
     while True:
-        try:
-            ready_to_read, _, _ = select.select([server_sock], [], [], 0)
-            if ready_to_read:
-                try:
-                    client_socket, client_address = server_sock.accept()
-                    print(f"New connection from {client_address}")
+        ready_to_read, _, _ = select.select([server_sock], [], [], 0)
+        if ready_to_read:
+            try:
+                client_socket, client_address = server_sock.accept()
+                print(f"New connection from {client_address}")
 
-                    success, to_add = handshake(client_socket)
+                success, to_add = handshake(client_socket)
 
-                    if success:
-                        client_list.append(to_add)
-                    else:
-                        client_socket.close()
-                except Exception as e:
-                    print(f"Error accepting connection: {e}")
+                if success:
+                    client_list.append(to_add)
+                else:
+                    client_socket.close()
+            except Exception as e:
+                print(f"Error accepting connection: {e}")
 
-            await asyncio.sleep(2)
-            # os.system("clear")
-            print("current friend list\n")
-            for friend in client_list:
-                print(friend)
-            print("\n\n\n\n\n")
-
-        except KeyboardInterrupt:
-            print("Shutting down server...")
-            break
+        await asyncio.sleep(2)
+        print_client_list()
+        # prints all connected clients, not important if you can't/don't want to see terminal output
 
 
 async def prune_client_list(client_list):
@@ -114,6 +116,15 @@ async def prune_client_list(client_list):
         await asyncio.gather(*tasks)
 
         await asyncio.sleep(5)
+
+
+def print_client_list():
+    global client_list
+    # os.system("clear")
+    print("current friend list\n")
+    for friend in client_list:
+        print(friend)
+    print("\n\n\n\n\n")
 
 
 async def run_server(ip, port):
