@@ -23,7 +23,7 @@ goon_users = set()
 
 def trigger_buzzer(name):
     for friend in client_list:
-        if friend.name in name:
+        if friend.name == name:
             friend.send_message("trigger alarm")
 
 
