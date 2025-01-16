@@ -37,7 +37,6 @@ def send_message(client_socket, message):
 
 
 def recv_message(client_socket):
-    """Receive a message from the server."""
     try:
         response = client_socket.recv(1024).decode()
         print(response)

@@ -21,7 +21,6 @@ client_list = []  # client list is global var now
 
 
 def trigger_buzzer(name):
-
     for friend in client_list:
         if friend.name == name:
             friend.send_message("trigger alarm")
@@ -30,8 +29,9 @@ def trigger_buzzer(name):
 def trigger_buzzers_for_all_devices():
     global client_list
     for friend in client_list:
-        trigger_buzzer(friend)
-    # O(n^2) my beloved, will be small lists so complexity isnt relevant
+        friend.send_message("trigger alarm")
+
+    # principally violates DRY but O(n) instead of O(n^2) my beloved
 
 
 @client.event
