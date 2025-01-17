@@ -35,35 +35,6 @@ def trigger_buzzers_for_all_devices():
     # principally violates DRY but O(n) instead of O(n^2) my beloved
 
 
-@client.event
-async def on_message(message: Message) -> None:
-    global client_list, goon_users
-
-    if message.author == client.user:
-        return
-
-    # checks if the message is "!goon" or "!goon [name]" with number of words in the message
-    if message.content.startswith("!goon") and len(message.content.split()) == 1:
-        if message.author.id not in goon_users:
-            goon_users.add(message.author.id)
-            await message.channel.send(
-                f"{message.author.mention} has joined the gooning squad! {len(goon_users)}/2"
-            )
-
-            if len(goon_users) == 2:
-                await message.channel.send("It's gooning time!")
-                trigger_buzzers_for_all_devices()
-                goon_users.clear()
-
-    else:
-        trigger_buzzer(
-            message.content.split(" ", 1)[1]
-        )  # grabs name from the message string (probably)
-
-
-# i added single person activations, this is untested because i dont have discord api stuff set up.
-
-
 def start_server(ip, port):
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setblocking(False)
