@@ -1,13 +1,13 @@
-import machine
+from machine import WDT
 import network
 import time
 import utime
 import _thread
 import socket
+import select
 import uasyncio as asyncio
 
 pain = _thread.allocate_lock()
-
 sound_pin = machine.Pin(1, machine.Pin.OUT)
 led1_pin = machine.Pin(10, machine.Pin.OUT)
 led2_pin = machine.Pin(14, machine.Pin.OUT)
@@ -39,10 +39,13 @@ def led_thread():  # allows for flashing LEDs and buzzer pseudo-pwming simultane
 
 
 def goontime():
+    global wdt
     end = time.time() + 10
     _thread.start_new_thread(led_thread, ())
 
     while time.time() < end:
+        wdt.feed()
+        print("fed dog")
         pain.acquire()
         time.sleep(13 / 3200)
         sound_pin.on()
@@ -54,7 +57,9 @@ def goontime():
     led1_pin.off()
     led2_pin.off()
     pain.release()
+    wdt.feed()
     time.sleep(5)
+    wdt.feed()
 
 
 def connect_to_server(ip, port):
@@ -70,7 +75,7 @@ def connect_to_server(ip, port):
 
 def perform_handshake(client_socket):
     try:
-        client_socket.sendall(b"scrounch")
+        client_socket.sendall(b"")  # NAME GOES HERE
         response = client_socket.recv(1024).decode()
         if response == "hello":
             print("Handshake successful with server!")
@@ -86,7 +91,6 @@ def perform_handshake(client_socket):
 def recv_message(client_socket):
     try:
         response = client_socket.recv(1024).decode()
-        print(response)
         return response
     except Exception as e:
         print(f"Error receiving message: {e}")
@@ -109,7 +113,7 @@ wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 
 
-wlan.connect("", "")
+wlan.connect("", "")  # POPULATE WIFI HERE
 
 while wlan.isconnected() == False and timeout <= 15:
     wifi_led.on()
@@ -124,27 +128,36 @@ if wlan.isconnected() == False:
 
 
 wifi_led.on()
-server_ip = ""
+server_ip = ""  # POPULATE IP OF THE SERVER
 server_port = 42069
+wdt = WDT(timeout=8000)
 
 client_socket = connect_to_server(server_ip, server_port)
 
 if client_socket and perform_handshake(client_socket):
+    client_socket.setblocking(False)
     while True:
         try:
-            comms = recv_message(client_socket)
-            if comms == "trigger alarm":
-                goontime()
 
-            elif comms != "":
-                send_message(client_socket, "ack")
-                print("sending ack")
-            else:
-                machine.reset()
+            ready_to_read, _, _ = select.select([client_socket], [], [], 1)
+            if client_socket in ready_to_read:
+                comms = recv_message(client_socket)
+                print(comms)
+                if comms == "trigger alarm":
+                    send_message(client_socket, "signal ack")
+                    goontime()
+                    client_socket.close()
+                    machine.reset()
+                elif comms:
+                    send_message(client_socket, "ack")
+                    wdt.feed()
+                else:
+                    print("Server disconnected.")
+                    machine.reset()
 
         except Exception as e:
-            print("message send failed, comms must be dead")
             machine.reset()
+
 
 else:
     print("Could not establish a connection.")

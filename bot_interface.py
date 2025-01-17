@@ -12,9 +12,7 @@ def send_command_all(ip, port):
         response = client_socket.recv(1024).decode()
         client_socket.close()
         print(response)
-        return response == "ack"
-    # true means the server recv the command properly
-    # DOES NOT guarantee that the command was properly executed. i can do that if needed but its late
+        return response
     except Exception as e:
         print(f"Error during command delivery: {e}")
         return False
@@ -32,7 +30,7 @@ def send_command_single(ip, port, target):
             client_socket.sendall(target.encode())
             response = client_socket.recv(1024).decode()
             client_socket.close()
-            return response == "ack"
+            return response
         return False
 
     except Exception as e:

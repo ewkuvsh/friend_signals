@@ -13,12 +13,25 @@ def trigger_buzzer(name):
     for friend in client_list:
         if friend.name == name:
             friend.send_message("trigger alarm")
+            if friend.recv_message() == "signal ack":
+                return f"successfully activated {friend.name}'s signal"
+            else:
+                return "something went wrong. they probably arent plugged in!"
 
 
 def trigger_buzzers_for_all_devices():
     global client_list
+    names = []
+    signals_recvd = "received by: "
     for friend in client_list:
+        friend.socket.settimeout(1)
         friend.send_message("trigger alarm")
+        ack = friend.recv_message()
+        if ack == "signal ack":
+            names.append(friend.name)
+
+    signals_recvd = signals_recvd + ", ".join(names)
+    return signals_recvd
 
     # principally violates DRY but O(n) instead of O(n^2) my beloved
 
@@ -34,7 +47,7 @@ def start_server(ip, port):
 
 def handshake(client_socket):
     try:
-        client_socket.settimeout(25)
+        client_socket.settimeout(5)
         data = client_socket.recv(1024).decode()
 
         if data in ["kurapikaisnow", "drowningin", "indescribableemptiness"]:
@@ -56,15 +69,15 @@ def handshake(client_socket):
 def process_command(client_socket, data):
 
     if data == "kurapikaisnow":
-        trigger_buzzers_for_all_devices()
-        client_socket.sendall(b"ack")
-        # client will now close the connection. don't close the connection here because that puts server in TIME_WAIT and blocks new commands for 2xMSL seconds
+        result = trigger_buzzers_for_all_devices()
+        client_socket.sendall(result.encode())
+        # clients will now close their connections. don't close the connection here because that puts server in TIME_WAIT and blocks new commands for 2xMSL seconds
 
     elif data == "drowningin":
         client_socket.sendall(b"present target")
         target = client_socket.recv(1024).decode()
-        trigger_buzzer(target)
-        client_socket.sendall(b"ack")
+        result = trigger_buzzer(target)
+        client_socket.sendall(result.encode())
 
     else:
         client_socket.sendall(get_client_string().encode())
@@ -99,7 +112,7 @@ async def prune_client_list(client_list):
         tasks = [friend.keep_alive(client_list) for friend in client_list]
         await asyncio.gather(*tasks)
 
-        await asyncio.sleep(45)
+        await asyncio.sleep(4)
 
 
 def print_client_list():
