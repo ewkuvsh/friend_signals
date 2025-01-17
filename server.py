@@ -23,7 +23,7 @@ goon_users = set()
 
 def trigger_buzzer(name):
     for friend in client_list:
-        if friend.name in name:
+        if friend.name == name:
             friend.send_message("trigger alarm")
 
 
@@ -77,14 +77,38 @@ def handshake(client_socket):
     try:
         client_socket.settimeout(5)
         data = client_socket.recv(1024).decode()
-        client_socket.sendall(b"hello")
-        print("Handshake successful!")
-        return True, Friend(data, client_socket)
+
+        if data in ["kurapikaisnow", "drowningin", "indescribableemptiness"]:
+            # this connection is from the bot, it will deliver a command and then disconnect.
+            process_command(client_socket, data)
+            return False, None
+        else:
+            client_socket.sendall(b"hello")
+            print("Handshake successful!")
+            return True, Friend(data, client_socket)
+
     except socket.timeout:
         print("Handshake timeout.")
     except Exception as e:
         print(f"Error during handshake: {e}")
     return False, None
+
+
+def process_command(client_socket, data):
+
+    if data == "kurapikaisnow":
+        trigger_buzzers_for_all_devices()
+        client_socket.sendall(b"ack")
+        # client will now close the connection. don't close the connection here because that puts server in TIME_WAIT and blocks new commands for 2xMSL seconds
+
+    elif data == "drowningin":
+        client_socket.sendall(b"present target")
+        target = client_socket.recv(1024).decode()
+        trigger_buzzer(target)
+        client_socket.sendall(b"ack")
+
+    else:
+        client_socket.sendall(get_client_string().encode())
 
 
 async def manage_clients(server_sock, client_list):
@@ -125,6 +149,11 @@ def print_client_list():
     for friend in client_list:
         print(friend)
     print("\n\n\n\n\n")
+
+
+def get_client_string():
+    global client_list
+    return "Clients: " + ", ".join(friend.name for friend in client_list)
 
 
 async def run_server(ip, port):
