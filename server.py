@@ -4,18 +4,6 @@ import select
 import asyncio
 from friend import Friend
 import os
-from typing import Final
-from discord import Intents, Client, Message, VoiceClient
-from dotenv import load_dotenv
-
-
-load_dotenv()
-TOKEN: Final[str] = os.getenv("DISCORD_TOKEN")
-
-# BOT SETUP
-intents: Intents = Intents.default()
-intents.message_content = True
-client: Client = Client(intents=intents)
 
 client_list = []  # client list is global var now
 goon_users = set()
@@ -46,7 +34,7 @@ def start_server(ip, port):
 
 def handshake(client_socket):
     try:
-        client_socket.settimeout(5)
+        client_socket.settimeout(25)
         data = client_socket.recv(1024).decode()
 
         if data in ["kurapikaisnow", "drowningin", "indescribableemptiness"]:
@@ -99,7 +87,8 @@ async def manage_clients(server_sock, client_list):
             except Exception as e:
                 print(f"Error accepting connection: {e}")
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
+        os.system("clear")
         print_client_list()
         # prints all connected clients, not important if you can't/don't want to see terminal output
 
@@ -110,7 +99,7 @@ async def prune_client_list(client_list):
         tasks = [friend.keep_alive(client_list) for friend in client_list]
         await asyncio.gather(*tasks)
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(45)
 
 
 def print_client_list():
@@ -138,7 +127,7 @@ async def run_server(ip, port):
 
 
 async def main():
-    await run_server("192.168.1.3", 42069)
+    await run_server("192.168.1.48", 42069)
 
 
 asyncio.run(main())
