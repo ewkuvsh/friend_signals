@@ -6,7 +6,6 @@ from friend import Friend
 import os
 
 client_list = []  # client list is global var now
-goon_users = set()
 
 
 def trigger_buzzer(name):
@@ -82,6 +81,7 @@ def process_command(client_socket, data):
     else:
         client_socket.sendall(get_client_string().encode())
 
+    #the lack of a default case is intentional. this is a *finite* state machine. TCP preempts corruption, so a data packet that does not match is the result of someone spoofing packets. 
 
 async def manage_clients(server_sock, client_list):
     while True:
@@ -140,7 +140,7 @@ async def run_server(ip, port):
 
 
 async def main():
-    await run_server("192.168.1.48", 42069)
+    await run_server("", 42069)
 
 
 asyncio.run(main())

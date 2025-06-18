@@ -1,6 +1,6 @@
-# for imran: these fns are how the bot interfaces with the server. this is all the bot needs and they should
+# for imran: these fns are how the bot communicates with the server. this is all the bot needs and they should
 # work out of the box with just ip/port combos.
-# you should populate the discord msg event handler with these functions whenever a command is needed.
+# should populate the discord msg event handler with these functions whenever a command is needed.
 import socket
 
 
@@ -18,9 +18,9 @@ def send_command_all(ip, port):
         return False
 
 
-# target string should be the name of the user that was provided by their goon signal.
+# target string should be the name of the user that was provided by their signal.
 # THIS IS **NOT** THEIR CURRENT DISCORD NAME. is it possible to make the discord bot send the actual
-# username and not server nickname? the goonsignal provided name is going to be hardcoded and won't change.
+# username and not server nickname? the signal provided name is going to be hardcoded and won't change.
 def send_command_single(ip, port, target):
     try:
         client_socket = connect_to_server(ip, port)
@@ -53,7 +53,7 @@ def send_command_list(ip, port):
         return "request failed"
 
 
-# needed for the fns, irrelevant to you
+
 def connect_to_server(ip, port):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:

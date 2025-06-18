@@ -7,7 +7,8 @@ import socket
 import select
 import uasyncio as asyncio
 
-pain = _thread.allocate_lock()
+
+lock = _thread.allocate_lock()
 sound_pin = machine.Pin(1, machine.Pin.OUT)
 led1_pin = machine.Pin(10, machine.Pin.OUT)
 led2_pin = machine.Pin(14, machine.Pin.OUT)
@@ -18,27 +19,27 @@ timer = 4
 def led_thread():  # allows for flashing LEDs and buzzer pseudo-pwming simultaneously
     end = time.time() + 14
     while time.time() < end:
-        pain.acquire()
+        lock.acquire()
         led1_pin.on()
         led2_pin.off()
-        pain.release()
+        lock.release()
 
         time.sleep(1)
 
-        pain.acquire()
+        lock.acquire()
         led1_pin.off()
         led2_pin.on()
-        pain.release()
+        lock.release()
 
         time.sleep(1)
-        pain.acquire()
+        lock.acquire()
         led1_pin.off()
         led2_pin.off()
-        pain.release()
+        lock.release()
     _thread.exit()
 
 
-def goontime():
+def activate():
     global wdt
     end = time.time() + 10
     _thread.start_new_thread(led_thread, ())
@@ -46,17 +47,17 @@ def goontime():
     while time.time() < end:
         wdt.feed()
         print("fed dog")
-        pain.acquire()
+        lock.acquire()
         time.sleep(13 / 3200)
         sound_pin.on()
         time.sleep(13 / 3200)
         sound_pin.off()
-        pain.release()
+        lock.release()
 
-    pain.acquire()
+    lock.acquire()
     led1_pin.off()
     led2_pin.off()
-    pain.release()
+    lock.release()
     wdt.feed()
     time.sleep(5)
     wdt.feed()
@@ -145,7 +146,7 @@ if client_socket and perform_handshake(client_socket):
                 print(comms)
                 if comms == "trigger alarm":
                     send_message(client_socket, "signal ack")
-                    goontime()
+                    activate()
                     client_socket.close()
                     machine.reset()
                 elif comms:
