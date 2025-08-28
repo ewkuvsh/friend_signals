@@ -129,8 +129,8 @@ if wlan.isconnected() == False:
 
 
 wifi_led.on()
-server_ip = ""  # POPULATE IP OF THE SERVER
-server_port = 42069
+server_ip = ""  
+server_port = 
 wdt = WDT(timeout=8000)
 
 client_socket = connect_to_server(server_ip, server_port)
